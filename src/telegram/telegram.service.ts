@@ -8,7 +8,7 @@ config();
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
-  private awaitingCityResponse: Record<number, boolean> = {};
+  private awaitingCityResponse: Record<string, boolean> = {};
 
   constructor(
     private readonly userService: UserService,
@@ -51,11 +51,20 @@ export class TelegramService {
     });
 
     this.bot.on('text', async (msg) => {
+      console.log(this.awaitingCityResponse);
       const chatId = msg.chat.id;
       const username = msg.chat.username;
 
       if (this.awaitingCityResponse[chatId]) {
         const city = msg.text;
+
+        const weather = await this.weatherService.getWeather(city);
+        if (weather instanceof NotFoundException) {
+          return this.bot.sendMessage(
+            chatId,
+            'Something went wrong, Enter a valid city name',
+          );
+        }
 
         const user = await this.userService.create(chatId, username, city);
 
@@ -65,12 +74,6 @@ export class TelegramService {
 
         this.bot.sendMessage(chatId, 'You have been subscribed');
         delete this.awaitingCityResponse[chatId];
-
-        const weather = await this.weatherService.getWeather(user.city);
-
-        if (weather instanceof NotFoundException) {
-          return this.bot.sendMessage(chatId, 'Something went wrong');
-        }
 
         this.bot.sendMessage(
           chatId,
