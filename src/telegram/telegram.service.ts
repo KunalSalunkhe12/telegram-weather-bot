@@ -51,7 +51,6 @@ export class TelegramService {
     });
 
     this.bot.on('text', async (msg) => {
-      console.log(this.awaitingCityResponse);
       const chatId = msg.chat.id;
       const username = msg.chat.username;
 
@@ -97,5 +96,24 @@ export class TelegramService {
       }
       this.bot.sendMessage(chatId, 'You have been unsubscribe');
     });
+  }
+
+  private async sendWeatherUpdates() {
+    const users = await this.userService.findAll();
+
+    const promises = users.map(async (user) => {
+      const weather = await this.weatherService.getWeather(user.city);
+
+      if (weather instanceof NotFoundException) {
+        return this.bot.sendMessage(user.chat_id, 'Something went wrong');
+      }
+
+      return this.bot.sendMessage(
+        user.chat_id,
+        `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
+      );
+    });
+
+    await Promise.all(promises);
   }
 }
