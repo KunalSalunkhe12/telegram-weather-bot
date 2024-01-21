@@ -18,6 +18,7 @@ export class TelegramService {
       polling: true,
     });
     this.handleCommands();
+    setInterval(() => this.sendWeatherUpdates(), 1000 * 60 * 60 * 24);
   }
 
   private handleCommands() {
