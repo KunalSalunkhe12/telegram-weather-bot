@@ -17,6 +17,7 @@ export class TelegramService {
     this.bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
       const firstName = msg.chat.first_name;
+      console.log(msg);
 
       this.sendMessage(
         chatId,
