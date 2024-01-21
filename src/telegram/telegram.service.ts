@@ -48,15 +48,19 @@ export class TelegramService {
       this.sendMessage(chatId, 'You have been subscribed');
     });
 
-    this.bot.onText(/\/unsubscribe/, (msg) => {
+    this.bot.onText(/\/unsubscribe/, async (msg) => {
       const chatId = msg.chat.id;
 
-      const existingUser = this.userService.findOne(chatId);
+      const existingUser = await this.userService.findOne(chatId);
+
       if (!existingUser) {
         return this.sendMessage(chatId, 'You are not subscribed');
       }
 
-      this.userService.deleteOne(chatId);
+      const deleteUser = await this.userService.deleteOne(chatId);
+      if (!deleteUser) {
+        return this.sendMessage(chatId, 'Something went wrong');
+      }
       this.sendMessage(chatId, 'You have been unsubscribe');
     });
   }
