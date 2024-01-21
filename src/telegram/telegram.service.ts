@@ -50,6 +50,13 @@ export class TelegramService {
 
     this.bot.onText(/\/unsubscribe/, (msg) => {
       const chatId = msg.chat.id;
+
+      const existingUser = this.userService.findOne(chatId);
+      if (!existingUser) {
+        return this.sendMessage(chatId, 'You are not subscribed');
+      }
+
+      this.userService.deleteOne(chatId);
       this.sendMessage(chatId, 'You have been unsubscribe');
     });
   }

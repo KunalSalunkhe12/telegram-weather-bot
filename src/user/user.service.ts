@@ -19,4 +19,8 @@ export class UserService {
   async findOne(chat_id: number) {
     return this.userModel.findOne({ chat_id }).exec();
   }
+
+  async deleteOne(chat_id: number) {
+    return this.userModel.deleteOne({ chat_id }).exec();
+  }
 }
