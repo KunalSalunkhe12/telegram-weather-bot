@@ -1,13 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import TelegramBot from 'node-telegram-bot-api';
 import { UserService } from '../user/user.service';
 import { config } from 'dotenv';
+import { WeatherService } from 'src/weather/weather.service';
 config();
 
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
-  constructor(private readonly userService: UserService) {
+  private awaitingCityResponse: Record<number, boolean> = {};
+
+  constructor(
+    private readonly userService: UserService,
+    private readonly weatherService: WeatherService,
+  ) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
     });
@@ -18,9 +24,8 @@ export class TelegramService {
     this.bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
       const firstName = msg.chat.first_name;
-      console.log(msg);
 
-      this.sendMessage(
+      this.bot.sendMessage(
         chatId,
         `Hello ${firstName}, welcome to the weather bot, you can use the following commands:
         /subscribe - to subscribe to get daily weather updates
@@ -31,21 +36,47 @@ export class TelegramService {
 
     this.bot.onText(/\/subscribe/, async (msg) => {
       const chatId = msg.chat.id;
-      const username = msg.chat.username;
 
       const existingUser = await this.userService.findOne(chatId);
 
       if (existingUser) {
-        return this.sendMessage(chatId, 'You are already subscribed');
+        return this.bot.sendMessage(chatId, 'You are already subscribed');
       }
 
-      const user = await this.userService.create(chatId, username);
+      this.bot.sendMessage(
+        chatId,
+        'Send me your city name on which you want to get weather updates',
+      );
+      this.awaitingCityResponse[chatId] = true;
+    });
 
-      if (!user) {
-        return this.sendMessage(chatId, 'Something went wrong');
+    this.bot.on('text', async (msg) => {
+      const chatId = msg.chat.id;
+      const username = msg.chat.username;
+
+      if (this.awaitingCityResponse[chatId]) {
+        const city = msg.text;
+
+        const user = await this.userService.create(chatId, username, city);
+
+        if (!user) {
+          return this.bot.sendMessage(chatId, 'Something went wrong');
+        }
+
+        this.bot.sendMessage(chatId, 'You have been subscribed');
+        delete this.awaitingCityResponse[chatId];
+
+        const weather = await this.weatherService.getWeather(user.city);
+
+        if (weather instanceof NotFoundException) {
+          return this.bot.sendMessage(chatId, 'Something went wrong');
+        }
+
+        this.bot.sendMessage(
+          chatId,
+          `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
+        );
       }
-
-      this.sendMessage(chatId, 'You have been subscribed');
     });
 
     this.bot.onText(/\/unsubscribe/, async (msg) => {
@@ -54,18 +85,14 @@ export class TelegramService {
       const existingUser = await this.userService.findOne(chatId);
 
       if (!existingUser) {
-        return this.sendMessage(chatId, 'You are not subscribed');
+        return this.bot.sendMessage(chatId, 'You are not subscribed');
       }
 
       const deleteUser = await this.userService.deleteOne(chatId);
       if (!deleteUser) {
-        return this.sendMessage(chatId, 'Something went wrong');
+        return this.bot.sendMessage(chatId, 'Something went wrong');
       }
-      this.sendMessage(chatId, 'You have been unsubscribe');
+      this.bot.sendMessage(chatId, 'You have been unsubscribe');
     });
-  }
-
-  sendMessage(chatId: number, message: string) {
-    this.bot.sendMessage(chatId, message);
   }
 }

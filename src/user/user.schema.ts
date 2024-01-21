@@ -8,6 +8,9 @@ export class User {
   @Prop({ required: true })
   username: string;
 
+  @Prop({ required: true })
+  city: string;
+
   @Prop({ required: true, default: false })
   blocked: boolean;
 }
