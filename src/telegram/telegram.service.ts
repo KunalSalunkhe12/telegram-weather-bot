@@ -16,7 +16,15 @@ export class TelegramService {
   private handleCommands() {
     this.bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
-      this.sendMessage(chatId, 'Welcome to my awesome bot');
+      const firstName = msg.chat.first_name;
+
+      this.sendMessage(
+        chatId,
+        `Hello ${firstName}, welcome to the weather bot, you can use the following commands:
+        /subscribe - to subscribe to get daily weather updates
+        /unsubscribe - to unsubscribe from the bot 
+        `,
+      );
     });
 
     this.bot.onText(/\/subscribe/, (msg) => {
