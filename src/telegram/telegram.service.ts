@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import TelegramBot from 'node-telegram-bot-api';
+import { UserService } from '../user/user.service';
 import { config } from 'dotenv';
 config();
 
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
-  constructor() {
+  constructor(private readonly userService: UserService) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
     });
@@ -28,8 +29,22 @@ export class TelegramService {
       );
     });
 
-    this.bot.onText(/\/subscribe/, (msg) => {
+    this.bot.onText(/\/subscribe/, async (msg) => {
       const chatId = msg.chat.id;
+      const username = msg.chat.username;
+
+      const existingUser = await this.userService.findOne(chatId);
+
+      if (existingUser) {
+        return this.sendMessage(chatId, 'You are already subscribed');
+      }
+
+      const user = await this.userService.create(chatId, username);
+
+      if (!user) {
+        return this.sendMessage(chatId, 'Something went wrong');
+      }
+
       this.sendMessage(chatId, 'You have been subscribed');
     });
 

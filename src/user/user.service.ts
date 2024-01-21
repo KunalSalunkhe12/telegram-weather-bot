@@ -7,8 +7,16 @@ import { Model } from 'mongoose';
 export class UserService {
   constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
 
-  async create(user: User) {
-    const createdUser = new this.userModel(user);
+  async create(chat_id: number, username: string) {
+    const createdUser = new this.userModel({ chat_id, username });
     return createdUser.save();
+  }
+
+  async findAll() {
+    return this.userModel.find().exec();
+  }
+
+  async findOne(chat_id: number) {
+    return this.userModel.findOne({ chat_id }).exec();
   }
 }
