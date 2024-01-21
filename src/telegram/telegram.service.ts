@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import TelegramBot from 'node-telegram-bot-api';
 import { UserService } from '../user/user.service';
 import { config } from 'dotenv';
@@ -7,7 +7,6 @@ config();
 
 @Injectable()
 export class TelegramService {
-  private logger = new Logger(TelegramService.name);
   private bot: TelegramBot;
   private awaitingCityResponse: Record<string, boolean> = {};
 
@@ -18,8 +17,9 @@ export class TelegramService {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
     });
+
     this.handleCommands();
-    setInterval(() => this.sendWeatherUpdates(), 1000 * 60);
+    setInterval(() => this.sendWeatherUpdates(), 1000 * 60 * 60 * 24);
   }
 
   private handleCommands() {
@@ -39,103 +39,85 @@ export class TelegramService {
     this.bot.onText(/\/subscribe/, async (msg) => {
       const chatId = msg.chat.id;
 
-      try {
-        const existingUser = await this.userService.findOne(chatId);
+      const existingUser = await this.userService.findOne(chatId);
 
-        if (existingUser) {
-          return this.bot.sendMessage(chatId, 'You are already subscribed');
-        }
-
-        this.bot.sendMessage(
-          chatId,
-          'Send me your city name on which you want to get weather updates',
-        );
-        this.awaitingCityResponse[chatId] = true;
-      } catch (error) {
-        this.bot.sendMessage(chatId, 'Something went wrong');
-        this.logger.error(error);
+      if (existingUser) {
+        return this.bot.sendMessage(chatId, 'You are already subscribed');
       }
+
+      this.bot.sendMessage(
+        chatId,
+        'Send me your city name on which you want to get weather updates',
+      );
+      this.awaitingCityResponse[chatId] = true;
     });
 
     this.bot.on('text', async (msg) => {
       const chatId = msg.chat.id;
       const username = msg.chat.username;
 
-      try {
-        if (this.awaitingCityResponse[chatId]) {
-          const city = msg.text;
-
-          const weather = await this.weatherService.getWeather(city);
-          if (weather instanceof NotFoundException) {
-            return this.bot.sendMessage(
-              chatId,
-              'Something went wrong, Enter a valid city name',
-            );
-          }
-
-          const user = await this.userService.create(chatId, username, city);
-
-          if (!user) {
-            return this.bot.sendMessage(chatId, 'Something went wrong');
-          }
-
-          this.bot.sendMessage(chatId, 'You have been subscribed');
-          delete this.awaitingCityResponse[chatId];
-
-          this.bot.sendMessage(
+      if (this.awaitingCityResponse[chatId]) {
+        const city = msg.text;
+        const weather = await this.weatherService.getWeather(city);
+        if (weather instanceof NotFoundException) {
+          return this.bot.sendMessage(
             chatId,
-            `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
+            'Something went wrong, Enter a valid city name',
           );
         }
-      } catch (error) {
-        this.bot.sendMessage(chatId, 'Something went wrong');
-        this.logger.error(error);
+
+        const user = await this.userService.create(chatId, username, city);
+
+        if (!user) {
+          return this.bot.sendMessage(chatId, 'Something went wrong');
+        }
+
+        this.bot.sendMessage(
+          chatId,
+          'You have been subscribed. You will get weather details every 24 hours',
+        );
+        delete this.awaitingCityResponse[chatId];
+
+        this.bot.sendMessage(
+          chatId,
+          `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
+        );
       }
     });
 
     this.bot.onText(/\/unsubscribe/, async (msg) => {
       const chatId = msg.chat.id;
 
-      try {
-        const existingUser = await this.userService.findOne(chatId);
+      const existingUser = await this.userService.findOne(chatId);
 
-        if (!existingUser) {
-          return this.bot.sendMessage(chatId, 'You are not subscribed');
-        }
-
-        const deleteUser = await this.userService.deleteOne(chatId);
-        if (!deleteUser) {
-          return this.bot.sendMessage(chatId, 'Something went wrong');
-        }
-        this.bot.sendMessage(chatId, 'You have been unsubscribe');
-      } catch (error) {
-        this.bot.sendMessage(chatId, 'Something went wrong');
-        this.logger.error(error);
+      if (!existingUser) {
+        return this.bot.sendMessage(chatId, 'You are not subscribed');
       }
+
+      const deleteUser = await this.userService.deleteOne(chatId);
+      if (!deleteUser) {
+        return this.bot.sendMessage(chatId, 'Something went wrong');
+      }
+      this.bot.sendMessage(chatId, 'You have been unsubscribe');
     });
   }
 
   private async sendWeatherUpdates() {
-    try {
-      const users = await this.userService.findAll();
+    const users = await this.userService.findAll();
 
-      const promises = users.map(async (user) => {
-        const weather = await this.weatherService.getWeather(user.city);
+    const promises = users.map(async (user) => {
+      const weather = await this.weatherService.getWeather(user.city);
 
-        if (weather instanceof NotFoundException) {
-          return this.bot.sendMessage(user.chat_id, 'Something went wrong');
-        }
+      if (weather instanceof NotFoundException) {
+        return this.bot.sendMessage(user.chat_id, 'Something went wrong');
+      }
 
-        return this.bot.sendMessage(
-          user.chat_id,
-          `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
-        );
-      });
+      return this.bot.sendMessage(
+        user.chat_id,
+        `Weather in ${weather.city} is ${weather.temperature}°C, ${weather.description}`,
+      );
+    });
 
-      await Promise.all(promises);
-    } catch (error) {
-      console.log(error);
-      this.logger.error(error);
-    }
+    await Promise.all(promises);
   }
 }
