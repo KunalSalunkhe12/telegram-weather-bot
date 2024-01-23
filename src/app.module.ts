@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { TelegramService } from './telegram/telegram.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config();
 import { UserModule } from './user/user.module';
 import { WeatherService } from './weather/weather.service';
 import { AdminModule } from './admin/admin.module';

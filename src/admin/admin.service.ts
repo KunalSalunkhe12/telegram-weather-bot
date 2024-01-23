@@ -1,11 +1,22 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { UserService } from 'src/user/user.service';
+import { Admin } from './admin.schema';
 
 @Injectable()
 export class AdminService {
   private WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    @InjectModel('Admin') private readonly adminModel: Model<Admin>,
+    private readonly userService: UserService,
+  ) {}
+
+  createAdmin(admin: { sub: string; email: string; name: string }) {
+    const createdAdmin = new this.adminModel(admin);
+    return createdAdmin.save();
+  }
 
   setWeatherApiKey(key: string) {
     this.WEATHER_API_KEY = key;
