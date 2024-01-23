@@ -12,5 +12,6 @@ import { AdminSchema } from './admin.schema';
   ],
   providers: [AdminService],
   controllers: [AdminController],
+  exports: [AdminService],
 })
 export class AdminModule {}

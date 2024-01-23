@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AdminService } from 'src/admin/admin.service';
 
 export type TWeather = {
   city: string;
@@ -8,12 +9,15 @@ export type TWeather = {
 
 @Injectable()
 export class WeatherService {
+  constructor(private readonly adminService: AdminService) {}
+
   async getWeather(city: string) {
-    console.log(city);
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.WEATHER_API_KEY}&units=metric`;
+    console.log(this.adminService.getWeatherApiKey());
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${this.adminService.getWeatherApiKey()}&units=metric`;
 
     const response = await fetch(url);
     const data = await response.json();
+    console.log(data);
 
     if (data.cod !== 200) {
       return new NotFoundException(data.message);

@@ -20,9 +20,9 @@ export class UserService {
     return this.userModel.findOne({ chat_id }).exec();
   }
 
-  async updateOne(chat_id: number, city: string) {
+  async updateOne(chat_id: number, block: boolean) {
     return this.userModel
-      .findOneAndUpdate({ chat_id }, { city }, { new: true })
+      .findOneAndUpdate({ chat_id }, { blocked: block }, { new: true })
       .exec();
   }
 
