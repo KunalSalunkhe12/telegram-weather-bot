@@ -12,7 +12,6 @@ export class WeatherService {
   constructor(private readonly adminService: AdminService) {}
 
   async getWeather(city: string) {
-    console.log(this.adminService.getWeatherApiKey());
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${this.adminService.getWeatherApiKey()}&units=metric`;
 
     const response = await fetch(url);
