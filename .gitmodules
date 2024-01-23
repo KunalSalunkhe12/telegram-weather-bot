@@ -1,0 +1,6 @@
+[submodule "frontend/telegram-weather-bot-frontend"]
+	path = frontend/telegram-weather-bot-frontend
+	url = https://github.com/KunalSalunkhe12/telegram-weather-bot-frontend
+[submodule "telegram-weather-bot-frontend"]
+	path = telegram-weather-bot-frontend
+	url = https://github.com/KunalSalunkhe12/telegram-weather-bot-frontend
