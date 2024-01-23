@@ -14,12 +14,21 @@ export class AdminService {
   ) {}
 
   async createAdmin(sub: string, email: string, name: string) {
-    const createdAdmin = new this.adminModel({ sub, email, name });
-    return createdAdmin.save();
+    const existingAdmin = await this.adminModel.findOne({ sub });
+    if (existingAdmin) {
+      return existingAdmin;
+    }
+    const createdAdmin = await this.adminModel.create({ sub, email, name });
+    return createdAdmin;
   }
 
-  setWeatherApiKey(key: string) {
-    this.WEATHER_API_KEY = key;
+  async setWeatherApiKey(key: string, sub: string) {
+    const admin = await this.adminModel.findOneAndUpdate(
+      { sub },
+      { weather_api_key: key },
+      { new: true },
+    );
+    return admin;
   }
 
   getWeatherApiKey() {

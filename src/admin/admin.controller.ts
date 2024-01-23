@@ -3,6 +3,7 @@ import {
   Controller,
   InternalServerErrorException,
   Post,
+  Put,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 
@@ -17,7 +18,26 @@ export class AdminController {
     @Body('sub') sub: string,
   ) {
     try {
-      const admin = await this.adminService.createAdmin(email, name, sub);
+      const admin = await this.adminService.createAdmin(sub, email, name);
+      if (admin) {
+        return admin;
+      }
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Put('weather-api-key')
+  async setWeatherApiKey(
+    @Body('weatherApiKey') weatherApiKey: string,
+    @Body('sub') sub: string,
+  ) {
+    try {
+      const admin = await this.adminService.setWeatherApiKey(
+        weatherApiKey,
+        sub,
+      );
       if (admin) {
         return admin;
       }
