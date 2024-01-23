@@ -13,8 +13,8 @@ export class AdminService {
     private readonly userService: UserService,
   ) {}
 
-  createAdmin(admin: { sub: string; email: string; name: string }) {
-    const createdAdmin = new this.adminModel(admin);
+  async createAdmin(sub: string, email: string, name: string) {
+    const createdAdmin = new this.adminModel({ sub, email, name });
     return createdAdmin.save();
   }
 
