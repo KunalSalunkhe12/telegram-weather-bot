@@ -90,6 +90,10 @@ export class TelegramService {
 
       const existingUser = await this.userService.findOne(chatId);
 
+      if (existingUser.blocked) {
+        return this.bot.sendMessage(chatId, 'You are blocked');
+      }
+
       if (!existingUser) {
         return this.bot.sendMessage(chatId, 'You are not subscribed');
       }
@@ -106,6 +110,9 @@ export class TelegramService {
     const users = await this.userService.findAll();
 
     const promises = users.map(async (user) => {
+      if (user.blocked) {
+        return this.bot.sendMessage(user.chat_id, 'You are blocked');
+      }
       const weather = await this.weatherService.getWeather(user.city);
 
       if (weather instanceof NotFoundException) {
